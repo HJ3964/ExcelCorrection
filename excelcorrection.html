@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Excel Correction Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 50px; text-align: center; }
+    .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
+    input[type="file"] { margin: 10px 0; }
+    button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Excel Correction Tool</h1>
+    <form id="uploadForm">
+      <input type="file" name="data" accept=".csv" required><br>
+      <button type="submit">Upload & Download Corrected CSV</button>
+    </form>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const status = document.getElementById('status');
+      status.textContent = "Processing...";
+
+      try {
+        const response = await fetch('https://primary-production-7ac1.up.railway.app/webhook/excel-correction', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to process file!');
+
+        const disposition = response.headers.get('Content-Disposition');
+        let fileName = 'corrected_data.csv';
+        if (disposition && disposition.includes('filename=')) {
+          fileName = disposition.split('filename=')[1].replace(/"/g, '');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        window.URL.revokeObjectURL(url);
+        status.textContent = "✅ Download complete!";
+      } catch (error) {
+        status.textContent = "❌ Error: " + error.message;
+      }
+    });
+  </script>
+
+</body>
+</html>
